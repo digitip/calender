@@ -2,24 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Advanced Calendar with Reminders</title>
+  <title>Full Calendar with Reminders, Sound & Vibration</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 20px;
       background-color: #f3f4f6;
     }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
+    h1 { text-align: center; margin-bottom: 10px; }
     #calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -27,7 +19,6 @@
       max-width: 800px;
       margin: auto;
     }
-
     .day {
       background-color: #fff;
       border: 1px solid #ccc;
@@ -37,19 +28,9 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
-
-    .day:hover {
-      background-color: #e0f7fa;
-    }
-
-    .day .date {
-      font-weight: bold;
-    }
-
-    .today {
-      border: 2px solid #4caf50;
-    }
-
+    .day:hover { background-color: #e0f7fa; }
+    .day .date { font-weight: bold; }
+    .today { border: 2px solid #4caf50; }
     #eventModal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -58,32 +39,27 @@
       align-items: center;
       justify-content: center;
     }
-
     #eventForm {
       background: #fff;
       padding: 20px;
       border-radius: 10px;
       width: 300px;
     }
-
     #eventForm input, #eventForm button {
       width: 100%;
       padding: 10px;
       margin: 5px 0;
     }
-
     .events {
       margin-top: 5px;
       font-size: 12px;
     }
-
     .event {
       background: #ffe0b2;
       padding: 3px;
       margin-top: 3px;
       border-radius: 4px;
     }
-
     @media (max-width: 600px) {
       #calendar {
         grid-template-columns: repeat(2, 1fr);
@@ -93,25 +69,31 @@
 </head>
 <body>
 
-  <h1>📅 Calendar with Event Reminders</h1>
+  <h1>📅 Calendar App with Time, Sound & Vibration</h1>
   <div id="calendar"></div>
 
-  <!-- Modal for adding events -->
+  <!-- Modal -->
   <div id="eventModal">
     <div id="eventForm">
       <h3>Add Event</h3>
       <input type="text" id="eventTitle" placeholder="Event title" />
+      <input type="time" id="eventTime" />
       <input type="number" id="reminderMin" placeholder="Reminder (minutes before)" />
       <button onclick="saveEvent()">Save</button>
       <button onclick="closeModal()">Cancel</button>
     </div>
   </div>
 
+  <!-- Sound for reminder -->
+  <audio id="alertSound" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" preload="auto"></audio>
+
   <script>
     const calendar = document.getElementById("calendar");
     const modal = document.getElementById("eventModal");
     const eventTitle = document.getElementById("eventTitle");
+    const eventTime = document.getElementById("eventTime");
     const reminderMin = document.getElementById("reminderMin");
+    const alertSound = document.getElementById("alertSound");
 
     let selectedDate = null;
     const events = {};
@@ -163,7 +145,7 @@
           events[key].forEach(e => {
             const eItem = document.createElement("div");
             eItem.className = "event";
-            eItem.textContent = e.title;
+            eItem.textContent = `${e.title} (${e.time})`;
             evDiv.appendChild(eItem);
           });
         }
@@ -178,37 +160,45 @@
     function closeModal() {
       modal.style.display = "none";
       eventTitle.value = "";
+      eventTime.value = "";
       reminderMin.value = "";
     }
 
     function saveEvent() {
       const title = eventTitle.value.trim();
+      const time = eventTime.value;
       const reminder = parseInt(reminderMin.value);
 
-      if (!title || isNaN(reminder)) {
-        alert("Please enter event title and reminder time.");
+      if (!title || !time || isNaN(reminder)) {
+        alert("Please fill all fields.");
         return;
       }
 
       if (!events[selectedDate]) events[selectedDate] = [];
 
-      events[selectedDate].push({ title });
+      events[selectedDate].push({ title, time });
 
-      // Set reminder
-      const eventDate = new Date(selectedDate);
-      eventDate.setHours(9, 0, 0); // assuming 9:00 AM event
+      const eventDateTime = new Date(selectedDate + "T" + time);
       const now = new Date();
-      const reminderTime = eventDate.getTime() - (reminder * 60 * 1000);
+      const reminderTime = eventDateTime.getTime() - (reminder * 60 * 1000);
 
       if (reminderTime > now.getTime()) {
         const timeout = reminderTime - now.getTime();
         setTimeout(() => {
-          alert(`🔔 Reminder: ${title} on ${selectedDate}`);
+          triggerReminder(title, selectedDate, time);
         }, timeout);
       }
 
       closeModal();
       renderCalendar();
+    }
+
+    function triggerReminder(title, date, time) {
+      alert(`🔔 Reminder: ${title} at ${time} on ${date}`);
+      alertSound.play();
+      if ("vibrate" in navigator) {
+        navigator.vibrate([300, 100, 300]);
+      }
     }
 
     renderCalendar();
