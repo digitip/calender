@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Calendar with Reminders</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+    .day {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+      cursor: pointer;
+    }
+    .today {
+      background-color: #ffd;
+    }
+    #eventForm {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Calendar App</h1>
+  <div id="calendar" class="calendar"></div>
+
+  <div id="eventForm">
+    <h2>Add Event</h2>
+    <label>Date: <input type="date" id="eventDate" /></label><br><br>
+    <label>Event: <input type="text" id="eventTitle" /></label><br><br>
+    <label>Reminder in (seconds): <input type="number" id="reminderSec" /></label><br><br>
+    <button onclick="addEvent()">Add Event</button>
+  </div>
+
+  <script>
+    const calendar = document.getElementById('calendar');
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    function renderCalendar(month, year) {
+      calendar.innerHTML = '';
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'day';
+        calendar.appendChild(blank);
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const day = document.createElement('div');
+        day.className = 'day';
+        day.textContent = d;
+
+        if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+          day.classList.add('today');
+        }
+
+        calendar.appendChild(day);
+      }
+    }
+
+    function addEvent() {
+      const date = document.getElementById('eventDate').value;
+      const title = document.getElementById('eventTitle').value;
+      const seconds = parseInt(document.getElementById('reminderSec').value);
+
+      if (!date || !title || isNaN(seconds)) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      setTimeout(() => {
+        alert(`🔔 Reminder: ${title} on ${date}`);
+      }, seconds * 1000);
+
+      alert("Event added and reminder set!");
+    }
+
+    renderCalendar(currentMonth, currentYear);
+  </script>
+</body>
+</html>
