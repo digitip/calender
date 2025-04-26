@@ -2,91 +2,217 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Simple Calendar with Reminders</title>
+  <title>Advanced Calendar with Reminders</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
+    * {
+      box-sizing: border-box;
     }
-    .calendar {
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f3f4f6;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    #calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 10px;
+      gap: 5px;
+      max-width: 800px;
+      margin: auto;
     }
+
     .day {
-      padding: 10px;
+      background-color: #fff;
       border: 1px solid #ccc;
-      text-align: center;
+      padding: 10px;
+      min-height: 80px;
+      position: relative;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
+
+    .day:hover {
+      background-color: #e0f7fa;
+    }
+
+    .day .date {
+      font-weight: bold;
+    }
+
     .today {
-      background-color: #ffd;
+      border: 2px solid #4caf50;
     }
+
+    #eventModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
     #eventForm {
-      margin-top: 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+    }
+
+    #eventForm input, #eventForm button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+    }
+
+    .events {
+      margin-top: 5px;
+      font-size: 12px;
+    }
+
+    .event {
+      background: #ffe0b2;
+      padding: 3px;
+      margin-top: 3px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 600px) {
+      #calendar {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Calendar App</h1>
-  <div id="calendar" class="calendar"></div>
 
-  <div id="eventForm">
-    <h2>Add Event</h2>
-    <label>Date: <input type="date" id="eventDate" /></label><br><br>
-    <label>Event: <input type="text" id="eventTitle" /></label><br><br>
-    <label>Reminder in (seconds): <input type="number" id="reminderSec" /></label><br><br>
-    <button onclick="addEvent()">Add Event</button>
+  <h1>📅 Calendar with Event Reminders</h1>
+  <div id="calendar"></div>
+
+  <!-- Modal for adding events -->
+  <div id="eventModal">
+    <div id="eventForm">
+      <h3>Add Event</h3>
+      <input type="text" id="eventTitle" placeholder="Event title" />
+      <input type="number" id="reminderMin" placeholder="Reminder (minutes before)" />
+      <button onclick="saveEvent()">Save</button>
+      <button onclick="closeModal()">Cancel</button>
+    </div>
   </div>
 
   <script>
-    const calendar = document.getElementById('calendar');
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    const calendar = document.getElementById("calendar");
+    const modal = document.getElementById("eventModal");
+    const eventTitle = document.getElementById("eventTitle");
+    const reminderMin = document.getElementById("reminderMin");
 
-    function renderCalendar(month, year) {
-      calendar.innerHTML = '';
+    let selectedDate = null;
+    const events = {};
+
+    function renderCalendar() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+      calendar.innerHTML = "";
+
+      const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      daysOfWeek.forEach(d => {
+        const dayHeader = document.createElement("div");
+        dayHeader.className = "day";
+        dayHeader.style.fontWeight = "bold";
+        dayHeader.textContent = d;
+        calendar.appendChild(dayHeader);
+      });
+
       for (let i = 0; i < firstDay; i++) {
-        const blank = document.createElement('div');
-        blank.className = 'day';
-        calendar.appendChild(blank);
+        const empty = document.createElement("div");
+        empty.className = "day";
+        calendar.appendChild(empty);
       }
 
       for (let d = 1; d <= daysInMonth; d++) {
-        const day = document.createElement('div');
-        day.className = 'day';
-        day.textContent = d;
+        const date = new Date(year, month, d);
+        const key = date.toISOString().split('T')[0];
 
-        if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-          day.classList.add('today');
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "day";
+        if (
+          d === now.getDate() &&
+          month === now.getMonth() &&
+          year === now.getFullYear()
+        ) {
+          dayDiv.classList.add("today");
         }
 
-        calendar.appendChild(day);
+        dayDiv.innerHTML = `<div class="date">${d}</div><div class="events" id="events-${key}"></div>`;
+        dayDiv.onclick = () => openModal(key);
+        calendar.appendChild(dayDiv);
+
+        if (events[key]) {
+          const evDiv = document.getElementById(`events-${key}`);
+          events[key].forEach(e => {
+            const eItem = document.createElement("div");
+            eItem.className = "event";
+            eItem.textContent = e.title;
+            evDiv.appendChild(eItem);
+          });
+        }
       }
     }
 
-    function addEvent() {
-      const date = document.getElementById('eventDate').value;
-      const title = document.getElementById('eventTitle').value;
-      const seconds = parseInt(document.getElementById('reminderSec').value);
+    function openModal(dateKey) {
+      selectedDate = dateKey;
+      modal.style.display = "flex";
+    }
 
-      if (!date || !title || isNaN(seconds)) {
-        alert("Please fill all fields.");
+    function closeModal() {
+      modal.style.display = "none";
+      eventTitle.value = "";
+      reminderMin.value = "";
+    }
+
+    function saveEvent() {
+      const title = eventTitle.value.trim();
+      const reminder = parseInt(reminderMin.value);
+
+      if (!title || isNaN(reminder)) {
+        alert("Please enter event title and reminder time.");
         return;
       }
 
-      setTimeout(() => {
-        alert(`🔔 Reminder: ${title} on ${date}`);
-      }, seconds * 1000);
+      if (!events[selectedDate]) events[selectedDate] = [];
 
-      alert("Event added and reminder set!");
+      events[selectedDate].push({ title });
+
+      // Set reminder
+      const eventDate = new Date(selectedDate);
+      eventDate.setHours(9, 0, 0); // assuming 9:00 AM event
+      const now = new Date();
+      const reminderTime = eventDate.getTime() - (reminder * 60 * 1000);
+
+      if (reminderTime > now.getTime()) {
+        const timeout = reminderTime - now.getTime();
+        setTimeout(() => {
+          alert(`🔔 Reminder: ${title} on ${selectedDate}`);
+        }, timeout);
+      }
+
+      closeModal();
+      renderCalendar();
     }
 
-    renderCalendar(currentMonth, currentYear);
+    renderCalendar();
   </script>
+
 </body>
 </html>
